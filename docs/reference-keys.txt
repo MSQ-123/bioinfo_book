@@ -1,4 +1,7 @@
 fig:web-home
+fig:shinyproxy-fig
+fig:swagger-fig
+fig:api-fig
 preface
 purpose-for-writing
 about-me
