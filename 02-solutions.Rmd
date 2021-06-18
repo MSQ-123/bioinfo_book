@@ -1,0 +1,39 @@
+# Possible solutions for the project  
+
+We discussed some senario and proposed several strategies:
+
+* **Nucmer alignment**: I used nucmer script (MUMmer software, written in C++) to obtain hundreds of mutation records in SRAS-CoV-2 genome. In some cases it throws error when fasta file is incomplete (I don't know the algorithm in detail). The output format .snps is not compatible with popular bioinformatic format like vcf. Given these, maybe recompiling is needed (The alignment speed is sufficient, so we will consider this problem later).
+
+* **Numba: A compiler for Python Functions**: For merge-annotation process, Numba can even speed up the computation faster than C (it calls GPU). What's more, the for-loop in R can be optimized to parallel computing, the algorithm needs revision (time complexity from O(N^3) to O(logN)).
+
+* **Multi-threading serve**: I have considered some available options to scale up shiny (support more users access), like:
+ + [Alternatives to scale shiny](https://appsilon.com/alternatives-to-scaling-shiny/): I recommend this video on [youtube](https://www.youtube.com/watch?v=MYVojGHeKAc).
+ + Consider ShinyProxy, which is based on docker framework:
+ 
+ ```{r shinyproxy-fig, fig.cap='Framework of shinyproxy', out.width='80%', fig.asp=.75, fig.align='center', echo = FALSE}
+
+knitr::include_graphics(path = "images/shinyproxy.jpg")
+
+```
+
+ + Not all software support concurrency (e.g, all nucmer script in Shell), we plan to upload the data table (in csv format) to database (MySQL, Oracle, etc.), which is compatible with automated update and more queries from users (index construction in database to support faster query, Ngnix for reverse proxy).
+
+* **Separation of front-end and backend**: Front-end (vue, echart, hichart, plotly?), back-end (python, java, SQL), separation makes optimization easily.
+ + Use gzip encoding to optimize the site.
+
+* **Test is important! Profile each step**: Sequence preprocess, SQL query, merge-annotation, front-end figures..., each step needs example data with different size (10 seqs, 1000 seqs, 10000 seqs, etc.). For alignment, the time difference should be quantified. 
+
+* **Selenium for web scraping (download sequence data)**: From semi-automation to automation, simulate the human behavior. 
+ + We found that the Gisaid web rendered download tables at the backend and returned it to front-end via ajax (Asynchronous JavaScript and XML), the dynamic nature of this web and the random time-lapse between operation make it difficult to test the code.
+ + Use css or xpath to locate the element (selectorGadget in Chrome browser)
+
+* **Cross platform calling**: communication among R, java, python, the middleware can be python or java. 
+
+
+
+
+
+
+ 
+
+

@@ -1,0 +1,309 @@
+# Backend methods
+
+We describe our backend methods step by step in this chapter. We decided to use java platform as the middle-ware, which integrates SQL query, api port testing and json data generation (api exposed to front-end).
+
+## MySQL query
+
+The covid_annot table behind my shiny web is uploaded to MySQL database, total 16 columns (see below). 
+
+Consider that CovidShiny mainly focuses on querying data from the backend, the first thing to improve users experience and start our project is putting the large dataset in csv format in db (previously it was loaded into memory, which is unapplicable to production-grade app).
+
+```{r covid_annot-tab, tidy=FALSE, echo=FALSE}
+# covid_annot<- read.csv("_bookdown_files/msq_books_files/dataset/covid_annot.csv", stringsAsFactors = F)
+
+load("./covid_annot.rda")
+# knitr::kable(
+#   head(covid_annot, 10), booktabs = TRUE,
+#   caption = 'A table of the first 10 rows of the mtcars data.'
+# )
+DT::datatable(head(covid_annot, 10),
+                  rownames = FALSE,
+                  extensions = "FixedColumns",
+                  filter = "bottom",
+
+                  options = list(
+                    pageLength = 5,
+                    scrollX = TRUE,
+                    fixedColumns = list(leftColumns = 1),
+                    autoWidth = FALSE,
+                    lengthMenu = c(5, 8, 10),
+                    columnDefs = list(list(className = "dt-left", target = "_all"))
+                  ), escape = FALSE)
+
+```
+
+
+Note: The dataset uploaded should be checked seriously just in case (some missing rows and *NA* in not-null column). Due to the high frequency of update, incremental id (corresponding to each unique mutation record of virus) column was set. 
+
+Next, I have to mention that the subset function used in my shiny framework can be pretty low-efficient when dealing large dataframe with up to hundreds of thousands rows (since R have to scanning the whole dataframe row by row to find all targets). So the subset syntax should be transformed into SQL query syntax (first in R, for test), for example: 
+
+From: 
+```{r r-query, tidy=FALSE, eval=FALSE}
+# this example subset by country,M_type (with top frequency),
+if(country != "global"){
+covid_annot<-covid_annot[covid_annot$country == country, ]
+      covid_annot<- covid_annot[covid_annot$M_type %in% names(head(sort(table(covid_annot$M_type),decreasing=TRUE),n=top)),]
+}
+
+if(country == "global"){
+      covid_annot<- covid_annot[covid_annot$M_type %in% names(head(sort(table(covid_annot$M_type),decreasing=TRUE),n=top)),]
+}
+```
+
+to: 
+```{r sql-query, tidy=FALSE, eval= FALSE}
+exec_sql_query_21<-function(conn,args_protein_list,args_country_list,order_M_type){
+  if (args_country_list=='global'){  #global without force index, slow
+    sql_sentence = glue("select sample, refpos, M_type from covid_annot \
+                        where M_type in (select M_type from (select M_type from covid_annot \
+                        where protein = '{args_protein_list}' \
+                        group by M_type order by count(M_type) DESC LIMIT {order_M_type})as t) \ 
+                        and protein = '{args_protein_list}'")
+  }
+  else{
+    sql_sentence = glue("select sample, refpos, M_type from covid_annot FORCE INDEX (country_index)\
+                        where M_type in (select M_type from (select M_type from covid_annot \
+                        where protein = '{args_protein_list}' and country = '{args_country_list}'\
+                        group by M_type order by count(M_type) DESC LIMIT {order_M_type})as t) \ 
+                        and protein = '{args_protein_list}' and country = '{args_country_list}'")
+  }
+  result = dbSendQuery(conn, sql_sentence) # read in 
+  result = fetch(result, n = -1) # return dataframe
+  return(result)
+}
+
+result_global_21<-exec_sql_query_21(my_conn,args_protein_list='S',args_country_list='global',order_M_type='3')
+```
+
+SQL sentences need to be optimized, in a few aspects:
+
++ Use count command to summarize the data feature, such as mutations per sample, frequency of each mutation type, etc. We do this because if we always import a large dataset from MySQL to middle-ware to calculate the statistics, it may run into out of memory.
+
++ Construct index: We used forced index of country field, to faster M_type sorting (i.e., filter country first, then sort M_type).
+
++ Divide complex SQL sentence into sub-query, intermediate query results can be preserved in middle-ware (java).
+
+I made several intermediate files for the test of SQL query. With simple modifications, these SQL sentences can be easily translated into java code.  
+
+## SpringBoot in java
+
+The web framework is springboot, and we used swagger for api testing (from my perspective, the api testing is the most powerful part of java application, enabling separation of front-end and back-end. Shiny does not have this function).
+
+```{r swagger-fig, fig.cap='Swagger for best APIs', out.width='80%', fig.asp=.75, fig.align='center', echo = FALSE}
+
+knitr::include_graphics(path = "images/swagger.png")
+
+```
+
+
+The json data returned by api (simulate GET, POST requests):
+
+```{r api-fig, fig.cap='APIs return json', out.width='80%', fig.asp=.75, fig.align='center', echo = FALSE}
+
+knitr::include_graphics(path = "images/api_json.png")
+
+```
+
+## Merge, annotation algorithm writen in java
+
+The format of snps records output by nucmer script:
+
+
+```{r nucmer-tab, tidy=FALSE, echo=FALSE}
+load("./nucmer.rds")
+
+DT::datatable(head(nucmer, 10),
+                  rownames = FALSE,
+                  extensions = "FixedColumns",
+                  filter = "bottom",
+
+                  options = list(
+                    pageLength = 5,
+                    scrollX = TRUE,
+                    # fixedColumns = list(leftColumns = 1),
+                    autoWidth = FALSE,
+                    lengthMenu = c(5, 8, 10),
+                    columnDefs = list(list(className = "dt-left", target = "_all"))
+                  ), escape = FALSE)
+
+```
+
+
+Each row represents a single mutation record. However, some mutations are contiguous (e.g, 121:C -> T, 122:A -> C, 123:G -> A). Also, contiguous mutations in some cases can be identified as deletions or insertions. For convenience (also save memory, reduce rows in the dataframe), I merged contiguous mutations into single records, rendering merged nucmer data, making it easy to annotate deletion and insertion events.
+
+I followed the code written by other publications[@Mercatelli2020]. I interpreted this tedious code and expressed the core idea to an algorithm engineer.
+
+
+```{r r-merge, tidy=FALSE, eval=FALSE}
+### Merge neighboring events ----
+samples<-unique(nucmer$qname)
+length(samples) # 12822
+pb<-txtProgressBar(0,length(samples),style=3)
+for (pbi in 1:length(samples)){ # This will update the nucmer object, deal with each sample records
+  sample<-samples[pbi]
+  allvars<-nucmer[nucmer$qname==sample,]
+  snps<-allvars[(allvars[,"rvar"]!=".")&(allvars[,"qvar"]!="."),]
+  inss<-allvars[(allvars[,"rvar"]=="."),]
+  dels<-allvars[(allvars[,"qvar"]=="."),]
+  # Merge insertions
+  prevqpos<-0
+  prevrowname<-NULL
+  remove<-c()
+  i<-1
+  corrector<-0
+  while(i<=nrow(inss)){
+    rpos<-inss[i,"rpos"]
+    rvar<-inss[i,"rvar"]
+    qvar<-inss[i,"qvar"]
+    qpos<-inss[i,"qpos"]
+    if((qpos!=1)&(qpos==(prevqpos+1+corrector))){
+      inss<-inss[-i,]
+      inss[prevrowname,"qvar"]<-paste0(inss[prevrowname,"qvar"],qvar)
+      corrector<-corrector+1
+      i<-i-1
+    } else {
+      corrector<-0
+      prevrowname<-rownames(inss)[i]
+      prevqpos<-qpos
+    }
+    i<-i+1
+  }
+  # Merge deletions
+  prevqpos<-0
+  prevrowname<-NULL
+  remove<-c()
+  i<-1
+  while(i<=nrow(dels)){
+    rpos<-dels[i,"rpos"]
+    rvar<-dels[i,"rvar"]
+    qvar<-dels[i,"qvar"]
+    qpos<-dels[i,"qpos"]
+    
+    if((qpos!=1)&(qpos==(prevqpos))){
+      dels<-dels[-i,]
+      dels[prevrowname,"rvar"]<-paste0(dels[prevrowname,"rvar"],rvar)
+      i<-i-1
+    } else {
+      prevrowname<-rownames(dels)[i]
+      prevqpos<-qpos
+    }
+    i<-i+1
+  }
+  # Merge SNPs
+  prevqpos<-0
+  prevrowname<-NULL
+  remove<-c()
+  i<-1
+  corrector<-0
+  while(i<=nrow(snps)){
+    rpos<-snps[i,"rpos"]
+    rvar<-snps[i,"rvar"]
+    qvar<-snps[i,"qvar"]
+    qpos<-snps[i,"qpos"]
+    
+    if((qpos!=1)&(qpos==(prevqpos+1+corrector))){
+      snps<-snps[-i,]
+      snps[prevrowname,"rvar"]<-paste0(snps[prevrowname,"rvar"],rvar)
+      snps[prevrowname,"qvar"]<-paste0(snps[prevrowname,"qvar"],qvar)
+      corrector<-corrector+1
+      i<-i-1
+    } else {
+      corrector<-0
+      prevrowname<-rownames(snps)[i]
+      prevqpos<-qpos
+    }
+    i<-i+1
+  }
+  
+  # Remerge back
+  allvars2<-rbind(snps,inss,dels)
+  remove<-setdiff(rownames(allvars),rownames(allvars2))#?setdiff
+  nucmer<-nucmer[setdiff(rownames(nucmer),remove),]
+  nucmer[rownames(allvars2),]<-allvars2
+  setTxtProgressBar(pb,pbi)
+}
+```
+
+This chunk of code has several problems:
+
++ Subsetting mutation records of each sample means exhaustive search, which will scan all rows in each for-loop.  When it comes to solve hundreds of thousands rows, this algorithm can be extremely time-consuming.   
+
+```{r r-subset, tidy=FALSE, eval=FALSE}
+#This subsets all records of each sample 
+allvars<-nucmer[nucmer$qname==sample,]
+```
+
++ Each sample can be processed independently. However, the above code does not involve concurrency. 
+
+To solve these problem, we rewrote the code into java, which supports concurrency easily:
+
+```{java}
+/**
+     * first group and sort records by sample name, mutation type (insertion, deletion, snp), qpos, rpos, so java only needs to merge records in order, without tedious subsetting.
+     *
+     * @param ses
+     * @return
+     */
+public List<SnpsEntity> mergeQpos(List<SnpsEntity> ses) {
+        ses.sort((o1, o2) -> {
+            if (!StrUtil.equals(o1.getQ_name(), o2.getQ_name()))
+                return StrUtil.compare(o1.getQ_name(), o2.getQ_name(), true);
+            if (o1.getType() != o2.getType())
+                return Integer.compare(o1.getType().ordinal(), o2.getType().ordinal());
+            if (o1.getQ_pos() != o1.getQ_pos())
+                return Integer.compare(o1.getQ_pos(), o2.getQ_pos());
+            return Integer.compare(o1.getR_pos(), o2.getR_pos());
+        });
+
+        List<SnpsEntity> ans = new ArrayList<>();
+        for (int i = 0, j; i < ses.size(); i = j) {
+            SnpsEntity se = ses.get(i);
+            boolean dbg = false;
+//             dbg = se.getR_pos() == 28280 && StrUtil.equals(se.getQ_name(),
+//                    "hCoV-19/Germany/un-RKI-I-112884/2021|EPI_ISL_1977817|2021-04-23");
+            if (dbg)
+                System.out.println(se);
+
+            for (j = i + 1; j < ses.size() && ses.get(j - 1).canMerge(ses.get(j)); j++) {
+                var sj = ses.get(j);
+                if (dbg)
+                    System.out.println(sj);
+
+                if (se.getType() == SnpsType.INS)
+                    se.setQ_var(se.getQ_var() + sj.getQ_var());
+                else if (se.getType() == SnpsType.DEL)
+                    se.setR_var(se.getR_var() + sj.getR_var());
+                else {
+                    se.setR_var(se.getR_var() + sj.getR_var());
+                    se.setQ_var(se.getQ_var() + sj.getQ_var());
+                }
+            }
+
+            ans.add(se);
+        }
+
+        ans.sort((o1, o2) -> {
+            if (!StrUtil.equals(o1.getQ_name(), o2.getQ_name()))
+                return StrUtil.compare(o1.getQ_name(), o2.getQ_name(), true);
+            return Integer.compare(o1.getR_pos(), o2.getR_pos());
+        });
+
+        return ans;
+    }
+}
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+

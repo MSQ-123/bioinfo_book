@@ -1,0 +1,17 @@
+fig:web-home
+fig:shinyproxy-fig
+fig:swagger-fig
+fig:api-fig
+preface
+purpose-for-writing
+about-me
+intro
+possible-solutions-for-the-project
+backend-methods
+mysql-query
+springboot-in-java
+merge-annotation-algorithm-writen-in-java
+app
+example-one
+example-two
+final-words
