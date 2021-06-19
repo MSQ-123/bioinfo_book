@@ -11,7 +11,7 @@ backend-methods
 mysql-query
 springboot-in-java
 merge-annotation-algorithm-writen-in-java
-app
-example-one
-example-two
-final-words
+front-end-methods
+introduction-of-shiny-framework
+vue.js-framework
+recommended-resources

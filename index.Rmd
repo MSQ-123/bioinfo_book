@@ -4,7 +4,7 @@ author: "Shaoqian Ma"
 date: "`r Sys.Date()`"
 site: bookdown::bookdown_site
 documentclass: book
-bibliography: [book.bib, packages.bib, ref.bib]
+bibliography: [packages.bib, ref.bib]
 biblio-style: apalike
 link-citations: yes
 description: "This is a minimal example of using the bookdown package to write a book. The output format for this example is bookdown::gitbook."
@@ -12,7 +12,7 @@ description: "This is a minimal example of using the bookdown package to write a
 
 # Preface
 
-This is my _first_ book written in **Markdown**. You can download the [github version](https://github.com/MSQ-123/bioinfo_notebook) locally and render it on your PC. This short book (actually, study notes) introduces some of my bioinformatics practice in cooperation with members of professional IT team. 
+This is my _first_ book written in **Markdown**. You can download the [github version](https://github.com/MSQ-123/bioinfo_book) locally and render it on your PC. This short book (actually, study notes) introduces some of my bioinformatics practice in cooperation with members of professional IT team. 
 
 ## Purpose for writing
 

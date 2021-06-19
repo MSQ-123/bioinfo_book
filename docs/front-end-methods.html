@@ -4,11 +4,11 @@
 
   <meta charset="utf-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <title>Chapter 3 Possible solutions for the project | Bioinformatics in practice: web development, program optimization and integration</title>
+  <title>Chapter 5 Front-end methods | Bioinformatics in practice: web development, program optimization and integration</title>
   <meta name="description" content="This is a minimal example of using the bookdown package to write a book. The output format for this example is bookdown::gitbook." />
   <meta name="generator" content="bookdown 0.22 and GitBook 2.6.7" />
 
-  <meta property="og:title" content="Chapter 3 Possible solutions for the project | Bioinformatics in practice: web development, program optimization and integration" />
+  <meta property="og:title" content="Chapter 5 Front-end methods | Bioinformatics in practice: web development, program optimization and integration" />
   <meta property="og:type" content="book" />
   
   
@@ -16,7 +16,7 @@
   
 
   <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="Chapter 3 Possible solutions for the project | Bioinformatics in practice: web development, program optimization and integration" />
+  <meta name="twitter:title" content="Chapter 5 Front-end methods | Bioinformatics in practice: web development, program optimization and integration" />
   
   <meta name="twitter:description" content="This is a minimal example of using the bookdown package to write a book. The output format for this example is bookdown::gitbook." />
   
@@ -31,8 +31,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black" />
   
   
-<link rel="prev" href="intro.html"/>
-<link rel="next" href="backend-methods.html"/>
+<link rel="prev" href="backend-methods.html"/>
+<link rel="next" href="recommended-resources.html"/>
 <script src="libs/header-attrs-2.8/header-attrs.js"></script>
 <script src="libs/jquery-2.2.3/jquery.min.js"></script>
 <link href="libs/gitbook-2.6.7/css/style.css" rel="stylesheet" />
@@ -213,41 +213,24 @@ div.csl-indent {
           <div class="page-inner">
 
             <section class="normal" id="section-">
-<div id="possible-solutions-for-the-project" class="section level1" number="3">
-<h1><span class="header-section-number">Chapter 3</span> Possible solutions for the project</h1>
-<p>We discussed some senario and proposed several strategies:</p>
-<ul>
-<li><p><strong>Nucmer alignment</strong>: I used nucmer script (MUMmer software, written in C++) to obtain hundreds of mutation records in SRAS-CoV-2 genome. In some cases it throws error when fasta file is incomplete (I don’t know the algorithm in detail). The output format .snps is not compatible with popular bioinformatic format like vcf. Given these, maybe recompiling is needed (The alignment speed is sufficient, so we will consider this problem later).</p></li>
-<li><p><strong>Numba: A compiler for Python Functions</strong>: For merge-annotation process, Numba can even speed up the computation faster than C (it calls GPU). What’s more, the for-loop in R can be optimized to parallel computing, the algorithm needs revision (time complexity from O(N^3) to O(logN)).</p></li>
-<li><p><strong>Multi-threading serve</strong>: I have considered some available options to scale up shiny (support more users access), like:</p></li>
-<li><p><a href="https://appsilon.com/alternatives-to-scaling-shiny/">Alternatives to scale shiny</a>: I recommend this video on <a href="https://www.youtube.com/watch?v=MYVojGHeKAc">youtube</a>.</p></li>
-<li><p>Consider ShinyProxy, which is based on docker framework:</p></li>
-</ul>
-<div class="figure" style="text-align: center"><span id="fig:shinyproxy-fig"></span>
-<img src="images/shinyproxy.jpg" alt="Framework of shinyproxy" width="80%" />
-<p class="caption">
-Figure 3.1: Framework of shinyproxy
-</p>
+<div id="front-end-methods" class="section level1" number="5">
+<h1><span class="header-section-number">Chapter 5</span> Front-end methods</h1>
+<p>Why I chose Shiny and how it can be extended.</p>
+<div id="introduction-of-shiny-framework" class="section level2" number="5.1">
+<h2><span class="header-section-number">5.1</span> Introduction of Shiny framework</h2>
 </div>
-<ul>
-<li><p>Not all software support concurrency (e.g, all nucmer script in Shell), we plan to upload the data table (in csv format) to database (MySQL, Oracle, etc.), which is compatible with automated update and more queries from users (index construction in database to support faster query, Ngnix for reverse proxy).</p></li>
-<li><p><strong>Separation of front-end and backend</strong>: Front-end (vue, echart, hichart, plotly?), back-end (python, java, SQL), separation makes optimization easily.</p></li>
-<li><p>Use gzip encoding to optimize the site.</p></li>
-<li><p><strong>Test is important! Profile each step</strong>: Sequence preprocess, SQL query, merge-annotation, front-end figures…, each step needs example data with different size (10 seqs, 1000 seqs, 10000 seqs, etc.). For alignment, the time difference should be quantified.</p></li>
-<li><p><strong>Selenium for web scraping (download sequence data)</strong>: From semi-automation to automation, simulate the human behavior.</p></li>
-<li><p>We found that the Gisaid web rendered download tables at the backend and returned it to front-end via ajax (Asynchronous JavaScript and XML), the dynamic nature of this web and the random time-lapse between operation make it difficult to test the code.</p></li>
-<li><p>Use css or xpath to locate the element (selectorGadget in Chrome browser)</p></li>
-<li><p><strong>Cross platform calling</strong>: communication among R, java, python, the middleware can be python or java.</p></li>
-</ul>
+<div id="vue.js-framework" class="section level2" number="5.2">
+<h2><span class="header-section-number">5.2</span> Vue.js framework</h2>
 
+</div>
 </div>
             </section>
 
           </div>
         </div>
       </div>
-<a href="intro.html" class="navigation navigation-prev " aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
-<a href="backend-methods.html" class="navigation navigation-next " aria-label="Next page"><i class="fa fa-angle-right"></i></a>
+<a href="backend-methods.html" class="navigation navigation-prev " aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
+<a href="recommended-resources.html" class="navigation navigation-next " aria-label="Next page"><i class="fa fa-angle-right"></i></a>
     </div>
   </div>
 <script src="libs/gitbook-2.6.7/js/app.min.js"></script>

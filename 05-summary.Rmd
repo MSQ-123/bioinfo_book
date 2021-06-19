@@ -1,3 +1,3 @@
-# Final Words
+# Recommended resources
 
-We have finished a nice book.
+This chapter summarizes some useful resource for bioinformatics.
