@@ -12,7 +12,7 @@ description: "This is a minimal example of using the bookdown package to write a
 
 # Preface
 
-This is my _first_ book written in **Markdown**. You can download the [github version](https://github.com/MSQ-123/bioinfo_book) locally and render it on your PC. This short book (actually, study notes) introduces some of my bioinformatics practice in cooperation with members of professional IT team. 
+This is my _first_ book written in **Markdown**. You can download the [github version](https://github.com/MSQ-123/bioinfo_book) locally and render it on your PC. This short book (actually, study notes) introduces some of my bioinformatics practice in cooperation with members of professional IT team (Note: this notebook has yet to be finished). 
 
 ## Purpose for writing
 
