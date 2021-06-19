@@ -15,3 +15,6 @@ front-end-methods
 introduction-of-shiny-framework
 vue.js-framework
 recommended-resources
+merge-records
+annotate-records
+some-tricks

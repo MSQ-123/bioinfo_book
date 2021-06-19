@@ -131,6 +131,9 @@ DT::datatable(head(nucmer, 10),
 
 Each row represents a single mutation record. However, some mutations are contiguous (e.g, 121:C -> T, 122:A -> C, 123:G -> A). Also, contiguous mutations in some cases can be identified as deletions or insertions. For convenience (also save memory, reduce rows in the dataframe), I merged contiguous mutations into single records, rendering merged nucmer data, making it easy to annotate deletion and insertion events.
 
+
+### Merge records
+
 I followed the code written by other publications[@Mercatelli2020]. I interpreted this tedious code and expressed the core idea to an algorithm engineer.
 
 
@@ -296,6 +299,8 @@ public List<SnpsEntity> mergeQpos(List<SnpsEntity> ses) {
 
 In java code, it ordered records first and traversed each record once (without subset function), saving a lot time when dealing with large dataset.
 
+### Annotate records
+
 The annotation process in R:
 
 ```{r r-annotation, tidy=FALSE, eval=FALSE}
@@ -357,7 +362,7 @@ for (pbi in 1:length(samples)){ # This will update the nucmer object
           for(j in 1:length(refpepseq)){
             refj<-refpepseq[j]#
             varj<-varpepseq[j]
-            #fix 需要TRUE/FALSE值的地方不可以用缺少值
+            #fix 
             if(is.na(refj) | is.na(varj)){
               output<-c(paste0(refj,j),"deletion")
               break()
@@ -386,7 +391,7 @@ for (pbi in 1:length(samples)){ # This will update the nucmer object
           for(j in 1:length(refpepseq)){
             refj<-refpepseq[j]
             varj<-varpepseq[j]
-            # fix 值
+            # fix 
             if(is.na(refj) | is.na(varj)){
               output<-c(paste0(refj,j),"insertion")
               break()
@@ -489,6 +494,9 @@ if (mutpos.isEmpty()) {
      * @return
      */
 ```
+
+
+## Some tricks
 
 One notable thing is that the division operation can be different between R and java when rewriting code. In R:
 
