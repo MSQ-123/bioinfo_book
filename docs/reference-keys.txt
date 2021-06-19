@@ -11,10 +11,10 @@ backend-methods
 mysql-query
 springboot-in-java
 merge-annotation-algorithm-writen-in-java
+merge-records
+annotate-records
+some-tricks
 front-end-methods
 introduction-of-shiny-framework
 vue.js-framework
 recommended-resources
-merge-records
-annotate-records
-some-tricks
